@@ -73,7 +73,7 @@ if __name__ == "__main__":
             if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
         else: 
-            break
+            continue
         
     vid.release()
     cv2.destroyAllWindows()

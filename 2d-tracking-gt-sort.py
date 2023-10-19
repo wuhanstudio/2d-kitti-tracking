@@ -80,7 +80,7 @@ if __name__ == "__main__":
                     track[3] /= height
 
                 # Draw bounding boxes onto the image
-                output = draw_bounding_boxes(frame, trackers[:, 0:4], labels, trackers[:, 4])
+                draw_bounding_boxes(frame, trackers[:, 0:4], labels, trackers[:, 4])
 
             # Display the resulting frame
             cv2.imshow('Frame', frame)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
             if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
         else: 
-            break
+            continue
 
     vid.release()
     cv2.destroyAllWindows()
