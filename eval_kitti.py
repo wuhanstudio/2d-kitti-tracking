@@ -36,8 +36,8 @@ import os
 import argparse
 from multiprocessing import freeze_support
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from TrackEval import trackeval  # noqa: E402
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'TrackEval')))
+import trackeval  # noqa: E402
 
 if __name__ == '__main__':
     freeze_support()
@@ -45,9 +45,16 @@ if __name__ == '__main__':
     # Command line interface:
     default_eval_config = trackeval.Evaluator.get_default_eval_config()
     default_eval_config['DISPLAY_LESS_PROGRESS'] = False
+    
     default_dataset_config = trackeval.datasets.Kitti2DBox.get_default_dataset_config()
+    default_dataset_config['GT_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
+    default_dataset_config['TRACKERS_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+    default_dataset_config['CLASSES_TO_EVAL'] = ['car']
+
     default_metrics_config = {'METRICS': ['HOTA', 'CLEAR', 'Identity']}
+    
     config = {**default_eval_config, **default_dataset_config, **default_metrics_config}  # Merge default configs
+    
     parser = argparse.ArgumentParser()
     for setting in config.keys():
         if type(config[setting]) == list or type(config[setting]) == type(None):
@@ -55,6 +62,7 @@ if __name__ == '__main__':
         else:
             parser.add_argument("--" + setting)
     args = parser.parse_args().__dict__
+    
     for setting in args.keys():
         if args[setting] is not None:
             if type(config[setting]) == type(True):
@@ -84,4 +92,5 @@ if __name__ == '__main__':
             metrics_list.append(metric())
     if len(metrics_list) == 0:
         raise Exception('No metrics selected for evaluation')
+
     evaluator.evaluate(dataset_list, metrics_list)
