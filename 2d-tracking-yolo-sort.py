@@ -42,16 +42,19 @@ mot_tracker = Sort( max_age=1,
                     min_hits=3,
                     iou_threshold=0.3) #create instance of the SORT tracker
 
+GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
+TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="2D KITTI Detection (Ground Truth)")
     parser.add_argument('--video', type=int, default=0, help='KITTI MOT Video Index: 0-20')
 
     args = parser.parse_args()
 
-    f_video = './data/{0:04d}.mp4'.format(args.video)
+    f_video = './data/video/{0:04d}.mp4'.format(args.video)
     print("Reading KITTI Video:", f_video)
 
-    f_label = './data/gt/kitti/kitti_2d_box_train/label_02/{0:04d}.txt'.format(args.video)
+    f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))
     print("Reading KITTI Label:", f_label)
 
     gt_labels = pd.read_csv(f_label, header=None, sep=' ')
@@ -60,6 +63,13 @@ if __name__ == "__main__":
 
     if (vid.isOpened()== False): 
         print("Error opening the video file")
+        exit(1)
+
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLO-SORT', 'data', '{0:04d}.txt'.format(args.video))
+    try:
+        f_tracker = open(OUT_FILE, "w+")
+    except OSError:
+        print("Could not open file:", OUT_FILE)
         exit(1)
 
     # Read until video is completed
@@ -77,44 +87,42 @@ if __name__ == "__main__":
         c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
 
         if ret == True:
-            i_frame = i_frame + 1
             height, width, _ = frame.shape
 
-        # Image preprocessing
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Image preprocessing
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # Run inference
-        images, boxes, labels, probs = model.predict(image)
+            # Run inference
+            images, boxes, labels, probs = model.predict(image)
 
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        # Only draw 2: car, 5: bus, 7: truck
-        boxes = np.array([box for box, label in zip(boxes, labels) if label in [2, 5, 7]])
-        probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
-        labels = np.array([2 for label in labels if label in [2, 5, 7]])
+            # Only draw 2: car, 5: bus, 7: truck
+            boxes = np.array([box for box, label in zip(boxes, labels) if label in [2, 5, 7]])
+            probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
+            labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
-        # convert [x1, y1, w, h] to [x1, y1, x2, y2]
-        if len(boxes) != 0:
-            sort_boxes = boxes.copy()
-
-            # (xc, yc, w, h) --> (x1, y1, x2, y2)
-            height, width, _ = image.shape
-
-            for box in sort_boxes:
-                box[0] *= width
-                box[1] *= height
-                box[2] *= width 
-                box[3] *= height
-
-                # From center to top left
-                box[0] -= box[2] / 2
-                box[1] -= box[3] / 2
-
-                # From width and height to x2 and y2
-                box[2] += box[0]
-                box[3] += box[1]
-
+            # convert [x1, y1, w, h] to [x1, y1, x2, y2]
             if len(boxes) > 0:
+                sort_boxes = boxes.copy()
+
+                # (xc, yc, w, h) --> (x1, y1, x2, y2)
+                height, width, _ = image.shape
+
+                for box in sort_boxes:
+                    box[0] *= width
+                    box[1] *= height
+                    box[2] *= width 
+                    box[3] *= height
+
+                    # From center to top left
+                    box[0] -= box[2] / 2
+                    box[1] -= box[3] / 2
+
+                    # From width and height to x2 and y2
+                    box[2] += box[0]
+                    box[3] += box[1]
+
                 labels = ['Car'] * len(boxes)
                 dets = np.concatenate((np.array(sort_boxes), np.array(probs).reshape((len(probs), -1))), axis=1)
 
@@ -123,6 +131,9 @@ if __name__ == "__main__":
 
                 # convert [x1, y1, x2, y2] to [xc, yc, w, h ]
                 for track in trackers:
+                    f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                    f_tracker.flush()
+
                     # From x2 and y2 to width and height
                     track[2] -= track[0]
                     track[3] -= track[1]
@@ -141,12 +152,14 @@ if __name__ == "__main__":
 
             # Display the resulting frame
             cv2.imshow('Frame', frame)
+            i_frame = i_frame + 1
 
             # Press Q on keyboard to  exit
-            if cv2.waitKey(0) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else: 
-            continue
+            break
 
+    f_tracker.close()
     vid.release()
     cv2.destroyAllWindows()

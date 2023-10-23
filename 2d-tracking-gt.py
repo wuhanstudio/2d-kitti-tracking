@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    f_video = './data/{0:04d}.mp4'.format(args.video)
+    f_video = './data/video/{0:04d}.mp4'.format(args.video)
     print("Reading KITTI Video:", f_video)
 
     f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))
@@ -31,64 +31,69 @@ if __name__ == "__main__":
         print("Error opening the video file")
         exit(1)
 
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'GT', 'data', '{0:04d}.txt'.format(args.video))
     try:
-        f_tracker = open(os.path.join(TRACKERS_FOLDER, 'GT-SORT', 'data', '{0:04d}.txt'.format(args.video)), "w+")
+        f_tracker = open(OUT_FILE, "w+")
     except OSError:
-        print("Could not open file:", os.path.join(TRACKERS_FOLDER, 'GT-SORT', 'data', '{0:04d}.txt'.format(args.video)))
+        print("Could not open file:", OUT_FILE)
         exit(1)
 
-    with f_tracker:
-        # Read until video is completed
-        i_frame = 0
-        while(vid.isOpened()):
-            # Capture frame-by-frame
-            ret, frame = vid.read()
+    # Read until video is completed
+    i_frame = 0
+    while(vid.isOpened()):
+        # Capture frame-by-frame
+        ret, frame = vid.read()
 
-            # Labels for the current frame
-            c_labels = gt_labels[gt_labels[0] == i_frame]
-            c_labels = c_labels[c_labels[1] != -1]
-            c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
+        if frame is None:
+            break;
 
-            if ret == True:
-                # Draw Bounding Boxes
-                labels = []
-                ids = []
-                boxes = []
-                for _, c_label in c_labels.iterrows():
-                    height, width, _ = frame.shape
+        # Labels for the current frame
+        c_labels = gt_labels[gt_labels[0] == i_frame]
+        c_labels = c_labels[c_labels[1] != -1]
+        c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
 
-                    # (x1, y1) (x2, y2) --> (xc, yc), w, h
-                    x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
+        if ret == True:
+            height, width, _ = frame.shape
 
-                    w = x2 - x1
-                    h = y2 - y1
-                    xc = x1 + w / 2
-                    yc = y1 + h / 2
+            # Draw Bounding Boxes
+            labels = []
+            ids = []
+            boxes = []
+            for _, c_label in c_labels.iterrows():
+                height, width, _ = frame.shape
 
-                    xc = xc / width
-                    yc = yc / height
-                    w = w / width
-                    h = h / height
-                    
-                    boxes.append(np.array([xc, yc, w, h]))
-                    labels.append(c_label[2])
-                    ids.append(c_label[1])
+                # (x1, y1) (x2, y2) --> (xc, yc), w, h
+                x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
 
-                    f_tracker.write(f'{i_frame} {c_label[1]} Car -1.000000 -1 -1 {c_label[6]} {c_label[7]} {c_label[8]} {c_label[9]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
-                    f_tracker.flush()
+                w = x2 - x1
+                h = y2 - y1
+                xc = x1 + w / 2
+                yc = y1 + h / 2
 
+                xc = xc / width
+                yc = yc / height
+                w = w / width
+                h = h / height
 
-                draw_bounding_boxes(frame, np.array(boxes), labels, ids);
+                boxes.append(np.array([xc, yc, w, h]))
+                labels.append(c_label[2])
+                ids.append(c_label[1])
 
-                # Display the resulting frame
-                i_frame = i_frame + 1
-                cv2.imshow('Frame', frame)
+                f_tracker.write(f'{i_frame} {c_label[1]} Car -1.000000 -1 -1 {c_label[6]} {c_label[7]} {c_label[8]} {c_label[9]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                f_tracker.flush()
 
-                # Press Q on keyboard to  exit
-                if cv2.waitKey(0) & 0xFF == ord('q'):
-                    break
-            else: 
+            draw_bounding_boxes(frame, np.array(boxes), labels, ids);
+
+            # Display the resulting frame
+            cv2.imshow('Frame', frame)
+            i_frame = i_frame + 1
+
+            # Press Q on keyboard to  exit
+            if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
+        else: 
+            break
 
+    f_tracker.close()
     vid.release()
     cv2.destroyAllWindows()

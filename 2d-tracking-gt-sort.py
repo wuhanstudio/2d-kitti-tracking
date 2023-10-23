@@ -1,3 +1,4 @@
+import os
 import argparse
 
 import pandas as pd
@@ -7,6 +8,9 @@ import numpy as np
 
 from sort.sort import Sort
 from utils.box_utils import draw_bounding_boxes
+
+GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
+TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
 
 mot_tracker = Sort( max_age=1, 
                     min_hits=3,
@@ -18,10 +22,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    f_video = './data/{0:04d}.mp4'.format(args.video)
+    f_video = './data/video/{0:04d}.mp4'.format(args.video)
     print("Reading KITTI Video:", f_video)
 
-    f_label = './data/gt/kitti/kitti_2d_box_train/label_02/{0:04d}.txt'.format(args.video)
+    f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))
     print("Reading KITTI Label:", f_label)
 
     gt_labels = pd.read_csv(f_label, header=None, sep=' ')
@@ -30,6 +34,13 @@ if __name__ == "__main__":
 
     if (vid.isOpened()== False): 
         print("Error opening the video file")
+        exit(1)
+
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'GT-SORT', 'data', '{0:04d}.txt'.format(args.video))
+    try:
+        f_tracker = open(OUT_FILE, "w+")
+    except OSError:
+        print("Could not open file:", OUT_FILE)
         exit(1)
 
     # Read until video is completed
@@ -44,7 +55,6 @@ if __name__ == "__main__":
         c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
 
         if ret == True:
-            i_frame = i_frame + 1
             height, width, _ = frame.shape
 
             # Draw Bounding Boxes
@@ -66,6 +76,9 @@ if __name__ == "__main__":
 
                 # convert [x1, y1, x2, y2] to [x, y, w, h ]
                 for track in trackers:
+                    f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                    f_tracker.flush()
+
                     # From x2 and y2 to width and height
                     track[2] -= track[0]
                     track[3] -= track[1]
@@ -84,12 +97,13 @@ if __name__ == "__main__":
 
             # Display the resulting frame
             cv2.imshow('Frame', frame)
+            i_frame = i_frame + 1
 
             # Press Q on keyboard to  exit
             if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
         else: 
-            continue
+            break
 
     vid.release()
     cv2.destroyAllWindows()
