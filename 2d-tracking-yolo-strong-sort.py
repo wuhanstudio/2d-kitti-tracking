@@ -6,9 +6,9 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from deep_sort import nn_matching
-from deep_sort.detection import Detection
-from deep_sort.tracker import Tracker
+from strong_sort import nn_matching
+from strong_sort.detection import Detection
+from strong_sort.tracker import Tracker
 
 from utils.box_utils import draw_bounding_boxes
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         print("Error opening the video file")
         exit(1)
 
-    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLO-DEEP-SORT', 'data', '{0:04d}.txt'.format(args.video))
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLO-STRONG-SORT', 'data', '{0:04d}.txt'.format(args.video))
     try:
         f_tracker = open(OUT_FILE, "w+")
     except OSError:
