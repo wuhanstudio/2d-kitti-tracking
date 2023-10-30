@@ -134,7 +134,7 @@ def is_not_empty_file(fpath):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="2D KITTI Detection (Ground Truth)")
+        description="2D Detection (Strong SORT)")
     parser.add_argument('--video', type=int, default=0,
                         help='KITTI MOT Video Index: 0-20')
     parser.add_argument('--dataset',

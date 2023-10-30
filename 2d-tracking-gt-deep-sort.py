@@ -1,10 +1,9 @@
 import os
 import argparse
 
-import pandas as pd
-
 import cv2
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from deep_sort import nn_matching
@@ -140,7 +139,7 @@ def is_not_empty_file(fpath):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="2D KITTI Detection (Ground Truth)")
+        description="2D Detection (Deep SORT)")
     parser.add_argument('--video', type=int, default=0,
                         help='KITTI MOT Video Index: 0-20')
     parser.add_argument('--dataset',
