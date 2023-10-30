@@ -37,10 +37,10 @@ if __name__ == "__main__":
         os.path.dirname(__file__))), f'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
 
     f_video = f'./data/video/{DATASET}/{args.video:04d}.mp4'
-    print("Reading {DATASET} Video:", f_video)
+    print(f"Reading {DATASET} Video:", f_video)
 
     f_label = os.path.join(GT_FOLDER, 'label_02', f'{args.video:04d}.txt')
-    print("Reading {DATASET} Label:", f_label)
+    print(f"Reading {DATASET} Label:", f_label)
 
     gt_labels = None
     if is_not_empty_file(f_label):
