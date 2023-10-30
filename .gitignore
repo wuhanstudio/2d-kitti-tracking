@@ -1,4 +1,5 @@
 .vscode/
 __pycache__/
+carla/
 *.mp4
 *.pyc
