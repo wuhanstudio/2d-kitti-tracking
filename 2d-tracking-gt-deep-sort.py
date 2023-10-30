@@ -13,14 +13,6 @@ from deep_sort.tracker import Tracker
 
 from utils.box_utils import draw_bounding_boxes
 
-## Part 0: Object Detection model
-
-from what.models.detection.datasets.coco import COCO_CLASS_NAMES
-from what.models.detection.yolo.yolov4 import YOLOV4
-from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY
-
-from what.cli.model import *
-from what.utils.file import get_file
 
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
@@ -34,6 +26,7 @@ def _run_in_batches(f, data_dict, out, batch_size):
     if e < len(out):
         batch_data_dict = {k: v[e:] for k, v in data_dict.items()}
         out[e:] = f(batch_data_dict)
+
 
 def extract_image_patch(image, bbox, patch_shape):
     """Extract image patch from bounding box.
@@ -81,6 +74,7 @@ def extract_image_patch(image, bbox, patch_shape):
     image = cv2.resize(image, tuple(patch_shape[::-1]))
     return image
 
+
 class ImageEncoder(object):
 
     def __init__(self, checkpoint_filename, input_name="images",
@@ -91,9 +85,9 @@ class ImageEncoder(object):
             graph_def.ParseFromString(file_handle.read())
         tf.compat.v1.import_graph_def(graph_def, name="net")
         self.input_var = tf.compat.v1.get_default_graph().get_tensor_by_name(
-            "net/%s:0" % input_name)
+            "%s:0" % input_name)
         self.output_var = tf.compat.v1.get_default_graph().get_tensor_by_name(
-            "net/%s:0" % output_name)
+            "%s:0" % output_name)
 
         assert len(self.output_var.get_shape()) == 2
         assert len(self.input_var.get_shape()) == 4
@@ -106,6 +100,7 @@ class ImageEncoder(object):
             lambda x: self.session.run(self.output_var, feed_dict=x),
             {self.input_var: data_x}, out, batch_size)
         return out
+
 
 def create_box_encoder(model_filename, input_name="images",
                        output_name="features", batch_size=32):
@@ -126,8 +121,11 @@ def create_box_encoder(model_filename, input_name="images",
 
     return encoder
 
-GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
-TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+
+GT_FOLDER = os.path.join(os.path.abspath(os.path.join(
+    os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
+TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(
+    os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
 
 # Deep SORT
 encoder = create_box_encoder("mars-small128.pb", batch_size=32)
@@ -135,27 +133,54 @@ encoder = create_box_encoder("mars-small128.pb", batch_size=32)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", 0.2, None)
 tracker = Tracker(metric)
 
+
+def is_not_empty_file(fpath):
+    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="2D KITTI Detection (Ground Truth)")
-    parser.add_argument('--video', type=int, default=0, help='KITTI MOT Video Index: 0-20')
+    parser = argparse.ArgumentParser(
+        description="2D KITTI Detection (Ground Truth)")
+    parser.add_argument('--video', type=int, default=0,
+                        help='KITTI MOT Video Index: 0-20')
+    parser.add_argument('--dataset',
+                        default='kitti',
+                        const='kitti',
+                        nargs='?',
+                        choices=['kitti', 'carla'],
+                        help='Evaluation Dataset (default: %(default)s)')
 
     args = parser.parse_args()
 
-    f_video = './data/video/{0:04d}.mp4'.format(args.video)
-    print("Reading KITTI Video:", f_video)
+    DATASET = args.dataset
+    GT_FOLDER = os.path.join(os.path.abspath(os.path.join(
+        os.path.dirname(__file__))), f'data/gt/{DATASET}/{DATASET}_2d_box_train/')
+    TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(
+        os.path.dirname(__file__))), f'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
 
-    f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))
-    print("Reading KITTI Label:", f_label)
+    f_video = f'./data/video/{DATASET}/{args.video:04d}.mp4'
+    print(f"Reading {DATASET} Video:", f_video)
 
-    gt_labels = pd.read_csv(f_label, header=None, sep=' ')
+    f_label = os.path.join(GT_FOLDER, 'label_02', f'{args.video:04d}.txt')
+    print(f"Reading {DATASET} Label:", f_label)
+
+    gt_labels = None
+    if is_not_empty_file(f_label):
+        gt_labels = pd.read_csv(f_label, header=None, sep=' ')
+    else:
+        print("Empty label file:", f_label)
 
     vid = cv2.VideoCapture(f_video)
 
-    if (vid.isOpened()== False): 
+    if (vid.isOpened() == False):
         print("Error opening the video file")
         exit(1)
 
-    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'GT-DEEP-SORT', 'data', '{0:04d}.txt'.format(args.video))
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'GT-DEEP-SORT',
+                            'data', '{0:04d}.txt'.format(args.video))
+    if not os.path.exists(os.path.dirname(OUT_FILE)):
+        # Create a new directory if it does not exist
+        os.makedirs(os.path.dirname(OUT_FILE))
     try:
         f_tracker = open(OUT_FILE, "w+")
     except OSError:
@@ -164,14 +189,18 @@ if __name__ == "__main__":
 
     # Read until video is completed
     i_frame = 0
-    while(vid.isOpened()):
+    while (vid.isOpened()):
         # Capture frame-by-frame
         ret, frame = vid.read()
 
         # Labels for the current frame
-        c_labels = gt_labels[gt_labels[0] == i_frame]
-        c_labels = c_labels[c_labels[1] != -1]
-        c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
+        if gt_labels is not None:
+            c_labels = gt_labels[gt_labels[0] == i_frame]
+            c_labels = c_labels[c_labels[1] != -1]
+            c_labels = c_labels[(c_labels[2] == 'Van') |
+                                (c_labels[2] == 'Car')]
+        else:
+            c_labels = pd.DataFrame([])
 
         if ret == True:
             height, width, _ = frame.shape
@@ -214,7 +243,8 @@ if __name__ == "__main__":
 
                     bbox = track.to_tlbr()
 
-                    f_tracker.write(f'{i_frame} {int(track.track_id)} Car -1.000000 -1 -1 {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                    f_tracker.write(
+                        f'{i_frame} {int(track.track_id)} Car -1.000000 -1 -1 {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                     f_tracker.flush()
 
                     # Convert [x1, y1, x2, y2] to [x, y, w, h]
@@ -228,7 +258,7 @@ if __name__ == "__main__":
 
                     bbox[0] /= width
                     bbox[1] /= height
-                    bbox[2] /= width 
+                    bbox[2] /= width
                     bbox[3] /= height
 
                     bboxes.append(bbox)
@@ -237,16 +267,16 @@ if __name__ == "__main__":
                 # Draw bounding boxes onto the image
                 labels = ['Car'] * len(bboxes)
 
-                draw_bounding_boxes(frame, np.array(bboxes), labels, ids);
+                draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
             # Display the resulting frame
             cv2.imshow('Frame', frame)
             i_frame = i_frame + 1
 
             # Press Q on keyboard to  exit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
-        else: 
+        else:
             break
 
     f_tracker.close()
