@@ -21,6 +21,9 @@ from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY
 from what.cli.model import *
 from what.utils.file import get_file
 
+DATASET = "carla"
+# DATASET = "kitti"
+
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
     num_batches = int(data_len / batch_size)
@@ -152,16 +155,16 @@ encoder = create_box_encoder("mars-small128.pb", batch_size=32)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", 0.2, None)
 tracker = Tracker(metric)
 
-GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
-TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), f'data/gt/{DATASET}/{DATASET}_2d_box_train/')
+TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="2D KITTI Detection (Ground Truth)")
-    parser.add_argument('--video', type=int, default=0, help='KITTI MOT Video Index: 0-20')
+    parser = argparse.ArgumentParser(description="2D Detection (Ground Truth)")
+    parser.add_argument('--video', type=int, default=0, help='Video Index: 0-20')
 
     args = parser.parse_args()
 
-    f_video = './data/video/{0:04d}.mp4'.format(args.video)
+    f_video = './data/video/{DATASET}/{0:04d}.mp4'.format(args.video)
     print("Reading KITTI Video:", f_video)
 
     f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))

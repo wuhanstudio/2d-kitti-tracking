@@ -12,6 +12,9 @@ from strong_sort.tracker import Tracker
 
 from utils.box_utils import draw_bounding_boxes
 
+DATASET = "carla"
+# DATASET = "kitti"
+
 ## Part 0: Object Detection model
 
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
@@ -152,22 +155,27 @@ encoder = create_box_encoder("mars-small128.pb", batch_size=32)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", 0.2, None)
 tracker = Tracker(metric)
 
-GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
-TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+GT_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), f'data/gt/{DATASET}/{DATASET}_2d_box_train/')
+TRACKERS_FOLDER = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), f'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
+
+def is_not_empty_file(fpath):
+    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="2D KITTI Detection (Ground Truth)")
-    parser.add_argument('--video', type=int, default=0, help='KITTI MOT Video Index: 0-20')
+    parser = argparse.ArgumentParser(description=f"2D ${DATASET} Detection (Ground Truth)")
+    parser.add_argument('--video', type=int, default=0, help=f'${DATASET} MOT Video Index: 0-20')
 
     args = parser.parse_args()
 
-    f_video = './data/video/{0:04d}.mp4'.format(args.video)
-    print("Reading KITTI Video:", f_video)
+    f_video = f'./data/video/{DATASET}/{args.video:04d}.mp4'
+    print(f"Reading {DATASET} Video:", f_video)
 
-    f_label = os.path.join(GT_FOLDER, 'label_02', '{0:04d}.txt'.format(args.video))
-    print("Reading KITTI Label:", f_label)
+    f_label = os.path.join(GT_FOLDER, 'label_02', f'{args.video:04d}.txt')
+    print(f"Reading {DATASET} Label:", f_label)
 
-    gt_labels = pd.read_csv(f_label, header=None, sep=' ')
+    gt_labels = None
+    if is_not_empty_file(f_label):
+        gt_labels = pd.read_csv(f_label, header=None, sep=' ')
 
     vid = cv2.VideoCapture(f_video)
 
@@ -176,6 +184,9 @@ if __name__ == "__main__":
         exit(1)
 
     OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLO-STRONG-SORT', 'data', '{0:04d}.txt'.format(args.video))
+    if not os.path.exists(os.path.dirname(OUT_FILE)):
+        # Create a new directory if it does not exist
+        os.makedirs(os.path.dirname(OUT_FILE))
     try:
         f_tracker = open(OUT_FILE, "w+")
     except OSError:
@@ -192,9 +203,12 @@ if __name__ == "__main__":
             break;
 
         # Labels for the current frame
-        c_labels = gt_labels[gt_labels[0] == i_frame]
-        c_labels = c_labels[c_labels[1] != -1]
-        c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
+        if gt_labels is not None:
+            c_labels = gt_labels[gt_labels[0] == i_frame]
+            c_labels = c_labels[c_labels[1] != -1]
+            c_labels = c_labels[ (c_labels[2] == 'Van') | (c_labels[2] == 'Car') ]
+        else:
+            c_labels = pd.DataFrame([])
 
         if ret == True:
             height, width, _ = frame.shape
@@ -277,7 +291,7 @@ if __name__ == "__main__":
             i_frame = i_frame + 1
 
             # Press Q on keyboard to  exit
-            if cv2.waitKey(0) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break

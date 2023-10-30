@@ -39,6 +39,9 @@ from multiprocessing import freeze_support
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'TrackEval')))
 import trackeval  # noqa: E402
 
+DATASET = "carla"
+# DATASET = "kitti"
+
 if __name__ == '__main__':
     freeze_support()
 
@@ -47,8 +50,8 @@ if __name__ == '__main__':
     default_eval_config['DISPLAY_LESS_PROGRESS'] = False
     
     default_dataset_config = trackeval.datasets.Kitti2DBox.get_default_dataset_config()
-    default_dataset_config['GT_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/gt/kitti/kitti_2d_box_train/')
-    default_dataset_config['TRACKERS_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), 'data/trackers/kitti/kitti_2d_box_train/')
+    default_dataset_config['GT_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), f'data/gt/{DATASET}/{DATASET}_2d_box_train/')
+    default_dataset_config['TRACKERS_FOLDER'] = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__))), f'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
     default_dataset_config['CLASSES_TO_EVAL'] = ['car']
 
     default_metrics_config = {'METRICS': ['HOTA', 'CLEAR', 'Identity']}
