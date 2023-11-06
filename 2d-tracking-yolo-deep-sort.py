@@ -21,6 +21,8 @@ from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY
 from what.cli.model import *
 from what.utils.file import get_file
 
+SHOW_IMAGE = True
+
 # Check what_model_list for all supported models
 what_yolov4_model_list = what_model_list[4:6]
 
@@ -192,13 +194,15 @@ if __name__ == "__main__":
 
                 draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
             i_frame = i_frame + 1
 
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            if SHOW_IMAGE:
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+
+                # Press Q on keyboard to  exit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         else:
             break
 

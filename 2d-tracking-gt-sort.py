@@ -8,6 +8,8 @@ import pandas as pd
 from sort.sort import Sort
 from utils.box_utils import draw_bounding_boxes
 
+SHOW_IMAGE = True
+
 mot_tracker = Sort(max_age=1,
                    min_hits=3,
                    iou_threshold=0.3)  # create instance of the SORT tracker
@@ -124,13 +126,15 @@ if __name__ == "__main__":
                 draw_bounding_boxes(
                     frame, trackers[:, 0:4], labels, trackers[:, 4])
 
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
             i_frame = i_frame + 1
 
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
+            if SHOW_IMAGE:
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+
+                # Press Q on keyboard to  exit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         else:
             break
 

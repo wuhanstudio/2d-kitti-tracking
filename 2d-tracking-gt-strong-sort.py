@@ -12,6 +12,8 @@ from strong_sort.tracker import Tracker
 from utils.box_utils import draw_bounding_boxes
 from utils.encorder import *
 
+SHOW_IMAGE = True
+
 # Deep SORT
 encoder = create_box_encoder("mars-small128.pb", batch_size=32)
 
@@ -154,13 +156,15 @@ if __name__ == "__main__":
 
                 draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
             i_frame = i_frame + 1
 
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
+            if SHOW_IMAGE:
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+
+                # Press Q on keyboard to  exit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         else:
             break
 

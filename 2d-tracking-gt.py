@@ -7,6 +7,7 @@ import pandas as pd
 
 from utils.box_utils import draw_bounding_boxes
 
+SHOW_IMAGE=True
 
 def is_not_empty_file(fpath):
     return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
@@ -111,13 +112,15 @@ if __name__ == "__main__":
 
             draw_bounding_boxes(frame, np.array(boxes), labels, ids)
 
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
             i_frame = i_frame + 1
 
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
+            if SHOW_IMAGE:
+                # Display the resulting frame
+                cv2.imshow('Frame', frame)
+
+                # Press Q on keyboard to  exit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         else:
             break
 
