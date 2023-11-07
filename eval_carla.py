@@ -1,8 +1,8 @@
 
-""" run_kitti.py
+""" run_carla.py
 
 Run example:
-run_kitti.py --USE_PARALLEL False --METRICS Hota --TRACKERS_TO_EVAL CIWT
+run_carla.py --USE_PARALLEL False --METRICS Hota --TRACKERS_TO_EVAL CIWT
 
 Command Line Arguments: Defaults, # Comments
     Eval arguments:
@@ -17,8 +17,8 @@ Command Line Arguments: Defaults, # Comments
         'OUTPUT_DETAILED': True,
         'PLOT_CURVES': True,
     Dataset arguments:
-        'GT_FOLDER': os.path.join(code_path, 'data/gt/kitti/kitti_2d_box_train'),  # Location of GT data
-        'TRACKERS_FOLDER': os.path.join(code_path, 'data/trackers/kitti/kitti_2d_box_train/'),  # Trackers location
+        'GT_FOLDER': os.path.join(code_path, 'data/gt/carla/carla_2d_box_train'),  # Location of GT data
+        'TRACKERS_FOLDER': os.path.join(code_path, 'data/trackers/carla/carla_2d_box_train/'),  # Trackers location
         'OUTPUT_FOLDER': None,  # Where to save eval results (if None, same as TRACKERS_FOLDER)
         'TRACKERS_TO_EVAL': None,  # Filenames of trackers to eval (if None, all in folder)
         'CLASSES_TO_EVAL': ['car', 'pedestrian'],  # Valid: ['car', 'pedestrian']
@@ -39,8 +39,8 @@ from multiprocessing import freeze_support
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'TrackEval')))
 import trackeval  # noqa: E402
 
-# DATASET = "carla"
-DATASET = "kitti"
+DATASET = "carla"
+# DATASET = "kitti"
 
 if __name__ == '__main__':
     freeze_support()
