@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from ocsort.ocsort import OCSort
+from oc_sort.ocsort import OCSort
 from utils.box_utils import draw_bounding_boxes
 
 ## Part 0: Object Detection model
