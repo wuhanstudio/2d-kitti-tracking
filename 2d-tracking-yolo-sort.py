@@ -8,8 +8,6 @@ import pandas as pd
 from sort.sort import Sort
 from utils.box_utils import draw_bounding_boxes
 
-## Part 0: Object Detection model
-
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
 from what.models.detection.yolo.yolov4 import YOLOV4
 from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY
@@ -156,7 +154,7 @@ if __name__ == "__main__":
                 # Update tracker
                 trackers = mot_tracker.update(dets)
 
-                # convert [x1, y1, x2, y2] to [xc, yc, w, h ]
+                # Convert [x1, y1, x2, y2] to [xc, yc, w, h ]
                 for track in trackers:
                     f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                     f_tracker.flush()

@@ -144,7 +144,7 @@ if __name__ == "__main__":
                 sort_boxes = boxes.copy()
 
                 detections = []
-                # (xc, yc, w, h) --> (x1, y1, x2, y2)
+                # (xc, yc, w, h) --> (x1, y1, w, h)
                 for i, box in enumerate(sort_boxes):
                     box[0] *= width
                     box[1] *= height
@@ -154,10 +154,6 @@ if __name__ == "__main__":
                     # From center to top left
                     box[0] -= box[2] / 2
                     box[1] -= box[3] / 2
-
-                    # From width and height to x2 and y2
-                    # box[2] += box[0]
-                    # box[3] += box[1]
 
                     # [x1, y1, w, h]
                     feature = encoder(image, box.reshape(1, -1).copy())

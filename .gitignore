@@ -3,3 +3,5 @@ __pycache__/
 carla/
 *.mp4
 *.pyc
+*.pdf
+*.pth
