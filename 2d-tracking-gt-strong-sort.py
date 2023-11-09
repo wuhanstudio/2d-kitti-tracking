@@ -134,20 +134,6 @@ if __name__ == "__main__":
                         f'{i_frame} {int(track.track_id)} Car -1.000000 -1 -1 {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                     f_tracker.flush()
 
-                    # Convert [x1, y1, x2, y2] to [x, y, w, h]
-                    # From x2 and y2 to width and height
-                    bbox[2] -= bbox[0]
-                    bbox[3] -= bbox[1]
-
-                    # From top left to center
-                    bbox[0] += bbox[2] / 2
-                    bbox[1] += bbox[3] / 2
-
-                    bbox[0] /= width
-                    bbox[1] /= height
-                    bbox[2] /= width
-                    bbox[3] /= height
-
                     bboxes.append(bbox)
                     ids.append(track.track_id)
 

@@ -92,17 +92,7 @@ if __name__ == "__main__":
                 # (x1, y1) (x2, y2) --> (xc, yc), w, h
                 x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
 
-                w = x2 - x1
-                h = y2 - y1
-                xc = x1 + w / 2
-                yc = y1 + h / 2
-
-                xc = xc / width
-                yc = yc / height
-                w = w / width
-                h = h / height
-
-                boxes.append(np.array([xc, yc, w, h]))
+                boxes.append(np.array([x1, y1, x2, y2]))
                 labels.append(c_label[2])
                 ids.append(c_label[1])
 

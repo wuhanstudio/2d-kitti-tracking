@@ -154,23 +154,9 @@ if __name__ == "__main__":
                 # Update tracker
                 trackers = mot_tracker.update(dets, [height, width], (height, width))
 
-                # convert [x1, y1, x2, y2] to [xc, yc, w, h ]
                 for track in trackers:
                     f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                     f_tracker.flush()
-
-                    # From x2 and y2 to width and height
-                    track[2] -= track[0]
-                    track[3] -= track[1]
-
-                    # From top left to center
-                    track[0] += track[2] / 2
-                    track[1] += track[3] / 2
-
-                    track[0] /= width
-                    track[1] /= height
-                    track[2] /= width
-                    track[3] /= height
 
                 # Draw bounding boxes onto the image
                 draw_bounding_boxes(frame, trackers[:, 0:4], labels, trackers[:, 4])
