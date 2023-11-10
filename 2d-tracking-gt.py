@@ -89,7 +89,6 @@ if __name__ == "__main__":
             for _, c_label in c_labels.iterrows():
                 height, width, _ = frame.shape
 
-                # (x1, y1) (x2, y2) --> (xc, yc), w, h
                 x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
 
                 boxes.append(np.array([x1, y1, x2, y2]))
@@ -97,7 +96,7 @@ if __name__ == "__main__":
                 ids.append(c_label[1])
 
                 f_tracker.write(
-                    f'{i_frame} {c_label[1]} Car -1.000000 -1 -1 {c_label[6]} {c_label[7]} {c_label[8]} {c_label[9]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                    f'{i_frame} {c_label[1]} Car {c_label[3]} {c_label[4]} -1 {c_label[6]} {c_label[7]} {c_label[8]} {c_label[9]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                 f_tracker.flush()
 
             draw_bounding_boxes(frame, np.array(boxes), labels, ids)
