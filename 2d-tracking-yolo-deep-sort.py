@@ -12,8 +12,6 @@ from deep_sort.tracker import Tracker
 from utils.box_utils import draw_bounding_boxes
 from utils.encorder import *
 
-# Part 0: Object Detection model
-
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
 from what.models.detection.yolo.yolov4 import YOLOV4
 from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY

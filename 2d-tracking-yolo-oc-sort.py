@@ -8,8 +8,6 @@ import pandas as pd
 from oc_sort.ocsort import OCSort
 from utils.box_utils import draw_bounding_boxes
 
-## Part 0: Object Detection model
-
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
 from what.models.detection.yolo.yolov4 import YOLOV4
 from what.models.detection.yolo.yolov4_tiny import YOLOV4_TINY
