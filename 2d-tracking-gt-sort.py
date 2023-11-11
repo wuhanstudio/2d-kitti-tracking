@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from sort.sort import Sort
-from utils.box_utils import draw_bounding_boxes
+from utils.box_utils import *
 
 SHOW_IMAGE = True
 
@@ -97,7 +97,10 @@ if __name__ == "__main__":
                 probs.append(1.0)
 
             if len(boxes) > 0:
+                # Draw bounding boxes onto the image
                 labels = ['Car'] * len(boxes)
+                draw_bounding_boxes(origin, np.array(boxes), labels, ids)
+
                 dets = np.concatenate((np.array(boxes), np.array(
                     probs).reshape((len(probs), -1))), axis=1)
 
@@ -110,10 +113,7 @@ if __name__ == "__main__":
                     f_tracker.flush()
 
                 # Draw bounding boxes onto the image
-                draw_bounding_boxes(
-                    origin, np.array(boxes), labels, ids)
-                draw_bounding_boxes(
-                    frame, trackers[:, 0:4], labels, trackers[:, 4])
+                draw_bounding_boxes(frame, trackers[:, 0:4], labels, trackers[:, 4])
 
             i_frame = i_frame + 1
 
@@ -123,51 +123,9 @@ if __name__ == "__main__":
                 cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN , cv2.WINDOW_FULLSCREEN)
 
                 if args.dataset == "kitti":
-                    res = cv2.vconcat([origin, frame])
-
-                    # Draw the title
-                    gt_text_img = np.zeros((height, height, 3), dtype=np.uint8)
-                    gt_text_img.fill(255)
-                    res_text_img = np.zeros((height, height, 3), dtype=np.uint8)
-                    res_text_img.fill(255)
-
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    text_location = (int(height / 4), 35)
-                    cv2.putText(gt_text_img, 'Ground Truth', (text_location), font, 1, (0, 0, 0), 2)
-                    cv2.putText(res_text_img, 'Model Output', text_location, font, 1, (0, 0, 0), 2)
-
-                    # Rotate the title
-                    M = cv2.getRotationMatrix2D((height / 2, height / 2), 90, 1)
-                    gt_out = cv2.warpAffine(gt_text_img, M, (gt_text_img.shape[1], gt_text_img.shape[0]))
-                    res_out = cv2.warpAffine(res_text_img, M, (res_text_img.shape[1], res_text_img.shape[0]))
-
-                    # Concatenate the image and title
-                    image_extended = np.ndarray( (res.shape[0], res.shape[1] + 50, 3), dtype=res.dtype)
-                    image_extended[:, :50] = cv2.vconcat([gt_out[:, :50], res_out[:, :50]])
-                    image_extended[:, 50:] = res
-
-                    cv2.imshow('Frame', image_extended)
-
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="vertical"))
                 else:
-                    res = cv2.hconcat([origin, frame])
-
-                    # Draw the title
-                    gt_text_img = np.zeros((50, width, 3), dtype=np.uint8)
-                    gt_text_img.fill(255)
-                    res_text_img = np.zeros((50, width, 3), dtype=np.uint8)
-                    res_text_img.fill(255)
-
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    text_location = (int(width / 2 - 100), 35)
-                    cv2.putText(gt_text_img,  'Ground Truth', text_location, font, 1, (0, 0, 0), 2)
-                    cv2.putText(res_text_img, 'Model Output', text_location, font, 1, (0, 0, 0), 2)
-
-                    # Concatenate the image and title
-                    image_extended = np.ndarray((res.shape[0] + 50,) + res.shape[1:], dtype=res.dtype)
-                    image_extended[:50, :] = cv2.hconcat([gt_text_img[:50, :], res_text_img[:50, :]])
-                    image_extended[50:, :] = res
-
-                    cv2.imshow('Frame', image_extended)
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="horizontal"))
 
                 # Press Q on keyboard to  exit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
