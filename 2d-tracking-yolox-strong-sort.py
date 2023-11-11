@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from utils.box_utils import draw_bounding_boxes
+from utils.box_utils import *
 from utils.encorder import *
 
 import time
@@ -184,7 +184,23 @@ if __name__ == "__main__":
             c_labels = pd.DataFrame([])
 
         if ret == True:
+            origin = frame.copy()
             height, width, _ = frame.shape
+
+            # Draw bounding boxes onto the original image
+            labels = []
+            ids = []
+            boxes = []
+            for _, c_label in c_labels.iterrows():
+                height, width, _ = frame.shape
+
+                x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
+
+                boxes.append(np.array([x1, y1, x2, y2]))
+                labels.append(c_label[2])
+                ids.append(c_label[1])
+
+            draw_bounding_boxes(origin, np.array(boxes), labels, ids)
 
             # Image preprocessing
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -248,16 +264,21 @@ if __name__ == "__main__":
                     bboxes.append(bbox)
                     ids.append(track.track_id)
 
-                # Draw bounding boxes onto the image
+                # Draw bounding boxes onto the predicted image
                 labels = ['Car'] * len(bboxes)
-
                 draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
             i_frame = i_frame + 1
 
             if SHOW_IMAGE:
                 # Display the resulting frame
-                cv2.imshow('Frame', frame)
+                cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+                cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN , cv2.WINDOW_FULLSCREEN)
+
+                if args.dataset == "kitti":
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="vertical"))
+                else:
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="horizontal"))
 
                 # Press Q on keyboard to  exit
                 if cv2.waitKey(1) & 0xFF == ord('q'):

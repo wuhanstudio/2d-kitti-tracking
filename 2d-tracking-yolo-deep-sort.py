@@ -9,7 +9,7 @@ from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 
-from utils.box_utils import draw_bounding_boxes
+from utils.box_utils import *
 from utils.encorder import *
 
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
@@ -109,12 +109,32 @@ if __name__ == "__main__":
             break
 
         # Labels for the current frame
-        c_labels = gt_labels[gt_labels[0] == i_frame]
-        c_labels = c_labels[c_labels[1] != -1]
-        c_labels = c_labels[(c_labels[2] == 'Van') | (c_labels[2] == 'Car')]
+        if gt_labels is not None:
+            c_labels = gt_labels[gt_labels[0] == i_frame]
+            c_labels = c_labels[c_labels[1] != -1]
+            c_labels = c_labels[(c_labels[2] == 'Van') |
+                                (c_labels[2] == 'Car')]
+        else:
+            c_labels = pd.DataFrame([])
 
         if ret == True:
+            origin = frame.copy()
             height, width, _ = frame.shape
+
+            # Draw bounding boxes onto the original image
+            labels = []
+            ids = []
+            boxes = []
+            for _, c_label in c_labels.iterrows():
+                height, width, _ = frame.shape
+
+                x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
+
+                boxes.append(np.array([x1, y1, x2, y2]))
+                labels.append(c_label[2])
+                ids.append(c_label[1])
+
+            draw_bounding_boxes(origin, np.array(boxes), labels, ids)
 
             # Image preprocessing
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -134,7 +154,7 @@ if __name__ == "__main__":
                 sort_boxes = boxes.copy()
 
                 detections = []
-                # (xc, yc, w, h) --> (x1, y1, x2, y2)
+                # (xc, yc, w, h) --> (x1, y1, w, h)
                 for i, box in enumerate(sort_boxes):
                     box[0] *= width
                     box[1] *= height
@@ -144,10 +164,6 @@ if __name__ == "__main__":
                     # From center to top left
                     box[0] -= box[2] / 2
                     box[1] -= box[3] / 2
-
-                    # From width and height to x2 and y2
-                    # box[2] += box[0]
-                    # box[3] += box[1]
 
                     # [x1, y1, w, h]
                     feature = encoder(image, box.reshape(1, -1).copy())
@@ -173,16 +189,21 @@ if __name__ == "__main__":
                     bboxes.append(bbox)
                     ids.append(track.track_id)
 
-                # Draw bounding boxes onto the image
+                # Draw bounding boxes onto the predicted image
                 labels = ['Car'] * len(bboxes)
-
                 draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
             i_frame = i_frame + 1
 
             if SHOW_IMAGE:
                 # Display the resulting frame
-                cv2.imshow('Frame', frame)
+                cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+                cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN , cv2.WINDOW_FULLSCREEN)
+
+                if args.dataset == "kitti":
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="vertical"))
+                else:
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="horizontal"))
 
                 # Press Q on keyboard to  exit
                 if cv2.waitKey(1) & 0xFF == ord('q'):

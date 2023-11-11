@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 probs.append(1.0)
 
             if len(boxes) > 0:
-                # Draw bounding boxes onto the image
+                # Draw bounding boxes onto the original image
                 labels = ['Car'] * len(boxes)
                 draw_bounding_boxes(origin, np.array(boxes), labels, ids)
 
@@ -142,9 +142,8 @@ if __name__ == "__main__":
                     bboxes.append(bbox)
                     ids.append(track.track_id)
 
-                # Draw bounding boxes onto the image
+                # Draw bounding boxes onto the predicted image
                 labels = ['Car'] * len(bboxes)
-
                 draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
             i_frame = i_frame + 1
