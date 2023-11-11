@@ -9,7 +9,7 @@ from strong_sort import nn_matching
 from strong_sort.detection import Detection
 from strong_sort.tracker import Tracker
 
-from utils.box_utils import draw_bounding_boxes
+from utils.box_utils import *
 from utils.encorder import *
 
 SHOW_IMAGE = True
@@ -90,6 +90,7 @@ if __name__ == "__main__":
             c_labels = pd.DataFrame([])
 
         if ret == True:
+            origin = frame.copy()
             height, width, _ = frame.shape
 
             # Image preprocessing
@@ -106,6 +107,10 @@ if __name__ == "__main__":
                 probs.append(1.0)
 
             if len(boxes) > 0:
+                # Draw bounding boxes onto the image
+                labels = ['Car'] * len(boxes)
+                draw_bounding_boxes(origin, np.array(boxes), labels, ids)
+
                 sort_boxes = boxes.copy()
 
                 detections = []
@@ -146,7 +151,13 @@ if __name__ == "__main__":
 
             if SHOW_IMAGE:
                 # Display the resulting frame
-                cv2.imshow('Frame', frame)
+                cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+                cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN , cv2.WINDOW_FULLSCREEN)
+
+                if args.dataset == "kitti":
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="vertical"))
+                else:
+                    cv2.imshow('Frame', draw_gt_pred_image(origin, frame, orientation="horizontal"))
 
                 # Press Q on keyboard to  exit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
