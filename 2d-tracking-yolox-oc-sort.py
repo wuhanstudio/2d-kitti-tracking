@@ -162,13 +162,10 @@ if __name__ == "__main__":
 
             # Draw bounding boxes onto the original image
             labels = []
-            ids = []
             boxes = []
+            ids = []
             for _, c_label in c_labels.iterrows():
-                height, width, _ = frame.shape
-
                 x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
-
                 boxes.append(np.array([x1, y1, x2, y2]))
                 labels.append(c_label[2])
                 ids.append(c_label[1])
@@ -179,20 +176,21 @@ if __name__ == "__main__":
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Run inference
+            labels = []
+            boxes = []
             outputs, img_info = predictor.inference(image)
-            if outputs[0] is None:
-                continue
-        
-            boxes  = outputs[0][:, 0:4].cpu().numpy()
-            labels = outputs[0][:, -1].cpu().numpy()
-            probs = (outputs[0][:, 4] * outputs[0][:, 5]).cpu().numpy()
 
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            if outputs[0] is not None:
+                boxes  = outputs[0][:, 0:4].cpu().numpy()
+                labels = outputs[0][:, -1].cpu().numpy()
+                probs = (outputs[0][:, 4] * outputs[0][:, 5]).cpu().numpy()
 
-            # Only draw 2: car, 5: bus, 7: truck
-            boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
-            probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
-            labels = np.array([2 for label in labels if label in [2, 5, 7]])
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+                # Only draw 2: car, 5: bus, 7: truck
+                boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
+                probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
+                labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
             if len(boxes) > 0:
                 sort_boxes = boxes.copy()

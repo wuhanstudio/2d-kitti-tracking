@@ -188,20 +188,19 @@ if __name__ == "__main__":
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Run inference
+            labels = []
+            boxes = []
             outputs, img_info = predictor.inference(image)
-            if outputs[0] is None:
-                continue
-        
-            boxes  = outputs[0][:, 0:4].cpu().numpy()
-            labels = outputs[0][:, -1].cpu().numpy()
-            probs = (outputs[0][:, 4] * outputs[0][:, 5]).cpu().numpy()
 
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            if outputs[0] is not None:        
+                boxes  = outputs[0][:, 0:4].cpu().numpy()
+                labels = outputs[0][:, -1].cpu().numpy()
+                probs = (outputs[0][:, 4] * outputs[0][:, 5]).cpu().numpy()
 
-            # Only draw 2: car, 5: bus, 7: truck
-            boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
-            probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
-            labels = np.array([2 for label in labels if label in [2, 5, 7]])
+                # Only draw 2: car, 5: bus, 7: truck
+                boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
+                probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
+                labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
             if len(boxes) > 0:
                 sort_boxes = boxes.copy()
