@@ -96,7 +96,7 @@ if __name__ == "__main__":
             # Image preprocessing
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Draw Bounding Boxes
+            # Draw bounding boxes onto the original image
             ids = []
             boxes = []
             probs = []
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                     box[3] = box[3] - box[1]
 
                     # [x1, y1, w, h]
-                    feature = encoder(frame, box.reshape(1, -1).copy())
+                    feature = encoder(image, box.reshape(1, -1).copy())
                     detections.append(Detection(box, probs[i], feature[0]))
 
                 # Update tracker.

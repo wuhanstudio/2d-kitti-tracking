@@ -95,7 +95,6 @@ if __name__ == "__main__":
                 ids.append(c_label[1])
                 probs.append(1.0)
 
-
             if len(boxes) > 0:
                 # Draw bounding boxes onto the original image
                 labels = ['Car'] * len(boxes)

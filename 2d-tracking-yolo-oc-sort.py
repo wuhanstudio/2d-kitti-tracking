@@ -118,10 +118,7 @@ if __name__ == "__main__":
             ids = []
             boxes = []
             for _, c_label in c_labels.iterrows():
-                height, width, _ = frame.shape
-
                 x1, y1, x2, y2 = c_label[6], c_label[7], c_label[8], c_label[9]
-
                 boxes.append(np.array([x1, y1, x2, y2]))
                 labels.append(c_label[2])
                 ids.append(c_label[1])
