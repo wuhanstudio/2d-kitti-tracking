@@ -2,14 +2,12 @@ import os
 import argparse
 
 import cv2
+import torch
 import numpy as np
 import pandas as pd
 
 from utils.box_utils import *
 from utils.encorder import *
-
-import time
-import torch
 
 from yolox.data.data_augment import ValTransform
 from yolox.data.datasets import COCO_CLASSES
@@ -46,6 +44,10 @@ class Predictor(object):
         self.fp16 = fp16
         self.preproc = ValTransform(legacy=legacy)
 
+        if self.device == "gpu":
+            model.cuda()
+        model.eval()
+
     def inference(self, img):
         img_info = {"id": 0}
         height, width = img.shape[:2]
@@ -65,7 +67,6 @@ class Predictor(object):
                 img = img.half()  # to FP16
 
         with torch.no_grad():
-            t0 = time.time()
             outputs = self.model(img)
             if self.decoder is not None:
                 outputs = self.decoder(outputs, dtype=outputs.type())
@@ -75,37 +76,18 @@ class Predictor(object):
             )
         return outputs, img_info
 
-    def visual(self, output, img_info, cls_conf=0.35):
-        ratio = img_info["ratio"]
-        img = img_info["raw_img"]
-        if output is None:
-            return img
-        output = output.cpu()
-
-        bboxes = output[:, 0:4]
-
-        # preprocessing: resize
-        bboxes /= ratio
-
-        cls = output[:, 6]
-        scores = output[:, 4] * output[:, 5]
-
-        vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
-        return vis_res
-
 
 exp = get_exp(None, "yolox-x")
-
-ckpt = torch.load("yolox_x.pth", map_location="cpu")
 model = exp.get_model()
-model.cuda()
-model.eval()
 
 # load the model state dict
+device = 'gpu' if torch.cuda.is_available() else 'cpu'
+ckpt = torch.load("yolox_x.pth", map_location="cpu")
 model.load_state_dict(ckpt["model"])
+
 predictor = Predictor(
         model, exp, COCO_CLASSES, None, None,
-        "gpu", False, False,
+        device, False, False,
     )
 
 # Deep SORT
