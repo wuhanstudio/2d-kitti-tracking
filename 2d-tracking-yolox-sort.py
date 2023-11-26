@@ -8,83 +8,46 @@ import pandas as pd
 
 from utils.box_utils import *
 
+from what.models.detection.datasets.coco import COCO_CLASS_NAMES
+from what.models.detection.yolox.yolox_x import YOLOX_X
+from what.models.detection.yolox.yolox_l import YOLOX_L
+from what.models.detection.yolox.yolox_m import YOLOX_M
+from what.models.detection.yolox.yolox_s import YOLOX_S
+
+from what.cli.model import *
+from what.utils.file import get_file
+
 from sort.sort import Sort
 
-from yolox.data.data_augment import ValTransform
-from yolox.data.datasets import COCO_CLASSES
-from yolox.exp import get_exp
-from yolox.utils import postprocess, vis
 
 SHOW_IMAGE = True
 
-class Predictor(object):
-    def __init__(
-        self,
-        model,
-        exp,
-        cls_names=COCO_CLASSES,
-        trt_file=None,
-        decoder=None,
-        device="cpu",
-        fp16=False,
-        legacy=False,
-    ):
-        self.model = model
-        self.cls_names = cls_names
-        self.decoder = decoder
-        self.num_classes = exp.num_classes
-        self.confthre = exp.test_conf
-        self.nmsthre = exp.nmsthre
-        self.test_size = exp.test_size
-        self.device = device
-        self.fp16 = fp16
-        self.preproc = ValTransform(legacy=legacy)
+# Check what_model_list for all supported models
+index = 0
 
-        if self.device == "gpu":
-            model.cuda()
-        model.eval()
+# Download the model first if not exists
+what_yolox_model_list = what_model_list[9:13]
+WHAT_YOLOX_MODEL_FILE = what_yolox_model_list[index][WHAT_MODEL_FILE_INDEX]
+WHAT_YOLOX_MODEL_URL  = what_yolox_model_list[index][WHAT_MODEL_URL_INDEX]
+WHAT_YOLOX_MODEL_HASH = what_yolox_model_list[index][WHAT_MODEL_HASH_INDEX]
 
-    def inference(self, img):
-        img_info = {"id": 0}
-        height, width = img.shape[:2]
-        img_info["height"] = height
-        img_info["width"] = width
-        img_info["raw_img"] = img
+if not os.path.isfile(os.path.join(WHAT_MODEL_PATH, WHAT_YOLOX_MODEL_FILE)):
+    get_file(WHAT_YOLOX_MODEL_FILE,
+             WHAT_MODEL_PATH,
+             WHAT_YOLOX_MODEL_URL,
+             WHAT_YOLOX_MODEL_HASH)
 
-        ratio = min(self.test_size[0] / img.shape[0], self.test_size[1] / img.shape[1])
-        img_info["ratio"] = ratio
+if index == 0:
+    model = YOLOX_X(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOX_MODEL_FILE))
 
-        img, _ = self.preproc(img, None, self.test_size)
-        img = torch.from_numpy(img).unsqueeze(0)
-        img = img.float()
-        if self.device == "gpu":
-            img = img.cuda()
-            if self.fp16:
-                img = img.half()  # to FP16
+if index == 1:
+    model = YOLOX_L(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOX_MODEL_FILE))
 
-        with torch.no_grad():
-            outputs = self.model(img)
-            if self.decoder is not None:
-                outputs = self.decoder(outputs, dtype=outputs.type())
-            outputs = postprocess(
-                outputs, self.num_classes, self.confthre,
-                self.nmsthre, class_agnostic=True
-            )
-        return outputs, img_info
+if index == 2:
+    model = YOLOX_M(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOX_MODEL_FILE))
 
-
-exp = get_exp(None, "yolox-x")
-model = exp.get_model()
-
-# load the model state dict
-device = 'gpu' if torch.cuda.is_available() else 'cpu'
-ckpt = torch.load("yolox_x.pth", map_location="cpu")
-model.load_state_dict(ckpt["model"])
-
-predictor = Predictor(
-        model, exp, COCO_CLASSES, None, None,
-        device, False, False,
-    )
+if index == 3:
+    model = YOLOX_S(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOX_MODEL_FILE))
 
 mot_tracker = Sort( max_age=1, 
                     min_hits=3,
@@ -179,35 +142,36 @@ if __name__ == "__main__":
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Run inference
-            labels = []
-            boxes = []
-            outputs, img_info = predictor.inference(image)
+            images, boxes, labels, probs = model.predict(image)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-            if outputs[0] is not None:
-                boxes  = outputs[0][:, 0:4].cpu().numpy()
-                labels = outputs[0][:, -1].cpu().numpy()
-                probs = (outputs[0][:, 4] * outputs[0][:, 5]).cpu().numpy()
+            # Only draw 2: car, 5: bus, 7: truck
+            boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
+            probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
+            labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-                # Only draw 2: car, 5: bus, 7: truck
-                boxes = np.array([box for box, label in zip(boxes, labels) if int(label) in [2, 5, 7]])
-                probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
-                labels = np.array([2 for label in labels if label in [2, 5, 7]])
-
-                boxes = np.array([box for box, prob in zip(boxes, probs) if prob >= 0.5 ])
-                probs = probs[probs >= 0.5]
-
+            # Convert [xc, yc, w, h] to [x1, y1, x2, y2]
             if len(boxes) > 0:
                 sort_boxes = boxes.copy()
 
+                # (xc, yc, w, h) --> (x1, y1, x2, y2)
+                height, width, _ = image.shape
+
+                for box in sort_boxes:
+                    box[0] *= width
+                    box[1] *= height
+                    box[2] *= width 
+                    box[3] *= height
+
+                    # From center to top left
+                    box[0] -= box[2] / 2
+                    box[1] -= box[3] / 2
+
+                    # From width and height to x2 and y2
+                    box[2] += box[0]
+                    box[3] += box[1]
+
                 detections = []
-                scale = min(640 / float(height), 640 / float(width))
-
-                # (x1, y1, x2, y2) --> (x1, y1, w, h)
-                for i, box in enumerate(sort_boxes):
-                    box /= scale
-
                 dets = np.concatenate((np.array(sort_boxes), np.array(probs).reshape((len(probs), -1))), axis=1)
 
                 # Update tracker

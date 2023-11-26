@@ -140,7 +140,7 @@ if __name__ == "__main__":
             probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
             labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
-            # convert [x1, y1, w, h] to [x1, y1, x2, y2]
+            # Convert [xc, yc, w, h] to [x1, y1, x2, y2]
             if len(boxes) > 0:
                 sort_boxes = boxes.copy()
 
