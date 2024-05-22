@@ -5,8 +5,12 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from oc_sort.ocsort import OCSort
+from deep_sort import nn_matching
+from deep_sort.detection import Detection
+from deep_sort.tracker import Tracker
+
 from utils.box_utils import *
+from utils.encorder import *
 
 from what.models.detection.datasets.coco import COCO_CLASS_NAMES
 from what.models.detection.yolo.yolov4 import YOLOV4
@@ -20,12 +24,12 @@ SHOW_IMAGE = True
 # Check what_model_list for all supported models
 what_yolov4_model_list = what_model_list[4:6]
 
-index = 0 # YOLOv4
+index = 0  # YOLOv4
 # index = 1 # YOLOv4 Tiny
 
 # Download the model first if not exists
 WHAT_YOLOV4_MODEL_FILE = what_yolov4_model_list[index][WHAT_MODEL_FILE_INDEX]
-WHAT_YOLOV4_MODEL_URL  = what_yolov4_model_list[index][WHAT_MODEL_URL_INDEX]
+WHAT_YOLOV4_MODEL_URL = what_yolov4_model_list[index][WHAT_MODEL_URL_INDEX]
 WHAT_YOLOV4_MODEL_HASH = what_yolov4_model_list[index][WHAT_MODEL_HASH_INDEX]
 
 if not os.path.isfile(os.path.join(WHAT_MODEL_PATH, WHAT_YOLOV4_MODEL_FILE)):
@@ -35,18 +39,25 @@ if not os.path.isfile(os.path.join(WHAT_MODEL_PATH, WHAT_YOLOV4_MODEL_FILE)):
              WHAT_YOLOV4_MODEL_HASH)
 
 # Darknet
-model = YOLOV4(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOV4_MODEL_FILE))
+model = YOLOV4(COCO_CLASS_NAMES, os.path.join(
+    WHAT_MODEL_PATH, WHAT_YOLOV4_MODEL_FILE))
 # model = YOLOV4_TINY(COCO_CLASS_NAMES, os.path.join(WHAT_MODEL_PATH, WHAT_YOLOV4_MODEL_FILE))
 
-mot_tracker = OCSort(det_thresh=0.6, iou_threshold=0.3, use_byte=False)
+# Deep SORT
+encoder = create_box_encoder("mars-small128.pb", batch_size=32)
+
+metric = nn_matching.NearestNeighborDistanceMetric("cosine", 0.2, None)
+tracker = Tracker(metric)
+
 
 def is_not_empty_file(fpath):
     return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="2D Detection (OC SORT)")
+    parser = argparse.ArgumentParser(description="2D Detection (Deep SORT)")
     parser.add_argument('--video', type=int, default=0,
-                        help='MOT Video Index: 0-20')
+                        help='Video Index: 0-20')
     parser.add_argument('--dataset',
                         default='kitti',
                         const='kitti',
@@ -63,25 +74,22 @@ if __name__ == "__main__":
         os.path.dirname(__file__))), f'data/trackers/{DATASET}/{DATASET}_2d_box_train/')
 
     f_video = f'./data/video/{DATASET}/{args.video:04d}.mp4'
-    print(f"Reading {DATASET} Video:", f_video)
+    print("Reading KITTI Video:", f_video)
 
-    f_label = os.path.join(GT_FOLDER, 'label_02', f'{args.video:04d}.txt')
-    print(f"Reading {DATASET} Label:", f_label)
+    f_label = os.path.join(GT_FOLDER, 'label_02',
+                           '{0:04d}.txt'.format(args.video))
+    print("Reading KITTI Label:", f_label)
 
-    gt_labels = None
-    if is_not_empty_file(f_label):
-        gt_labels = pd.read_csv(f_label, header=None, sep=' ')
-    else:
-        print("Empty label file:", f_label)
+    gt_labels = pd.read_csv(f_label, header=None, sep=' ')
 
     vid = cv2.VideoCapture(f_video)
 
-    if (vid.isOpened()== False): 
+    if (vid.isOpened() == False):
         print("Error opening the video file")
         exit(1)
 
-    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLO-OC-SORT',
-                            'data', f'{args.video:04d}.txt')
+    OUT_FILE = os.path.join(TRACKERS_FOLDER, 'YOLOv4-DEEP-SORT',
+                            'data', '{0:04d}.txt'.format(args.video))
     if not os.path.exists(os.path.dirname(OUT_FILE)):
         # Create a new directory if it does not exist
         os.makedirs(os.path.dirname(OUT_FILE))
@@ -93,12 +101,12 @@ if __name__ == "__main__":
 
     # Read until video is completed
     i_frame = 0
-    while(vid.isOpened()):
+    while (vid.isOpened()):
         # Capture frame-by-frame
         ret, frame = vid.read()
 
         if frame is None:
-            break;
+            break
 
         # Labels for the current frame
         if gt_labels is not None:
@@ -131,46 +139,56 @@ if __name__ == "__main__":
             # Run inference
             images, boxes, labels, probs = model.predict(image)
 
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
             # Only draw 2: car, 5: bus, 7: truck
-            boxes = np.array([box for box, label in zip(boxes, labels) if label in [2, 5, 7]])
-            probs = np.array([prob for prob, label in zip(probs, labels) if label in [2, 5, 7]])
+            boxes = np.array([box for box, label in zip(
+                boxes, labels) if label in [2, 5, 7]])
+            probs = np.array([prob for prob, label in zip(
+                probs, labels) if label in [2, 5, 7]])
             labels = np.array([2 for label in labels if label in [2, 5, 7]])
 
-            # convert [x1, y1, w, h] to [x1, y1, x2, y2]
+            # Convert [xc, yc, w, h] to [x1, y1, w, h]
             if len(boxes) > 0:
                 sort_boxes = boxes.copy()
 
-                # (xc, yc, w, h) --> (x1, y1, x2, y2)
-                height, width, _ = image.shape
-
-                for box in sort_boxes:
+                detections = []
+                # (xc, yc, w, h) --> (x1, y1, w, h)
+                for i, box in enumerate(sort_boxes):
                     box[0] *= width
                     box[1] *= height
-                    box[2] *= width 
+                    box[2] *= width
                     box[3] *= height
 
                     # From center to top left
                     box[0] -= box[2] / 2
                     box[1] -= box[3] / 2
 
-                    # From width and height to x2 and y2
-                    box[2] += box[0]
-                    box[3] += box[1]
+                    # [x1, y1, w, h]
+                    feature = encoder(image, box.reshape(1, -1).copy())
 
-                labels = ['Car'] * len(boxes)
-                dets = np.concatenate((np.array(sort_boxes), np.array(probs).reshape((len(probs), -1))), axis=1)
+                    detections.append(Detection(box, probs[i], feature[0]))
 
-                # Update tracker
-                trackers = mot_tracker.update(dets, [height, width], (height, width))
+                # Update tracker.
+                tracker.predict()
+                tracker.update(detections)
 
-                for track in trackers:
-                    f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
+                bboxes = []
+                ids = []
+                for track in tracker.tracks:
+                    if not track.is_confirmed() or track.time_since_update > 1:
+                        continue
+
+                    bbox = track.to_tlbr()
+
+                    f_tracker.write(
+                        f'{i_frame} {int(track.track_id)} Car -1.000000 -1 -1 {bbox[0]} {bbox[1]} {bbox[2]} {bbox[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
                     f_tracker.flush()
 
+                    bboxes.append(bbox)
+                    ids.append(track.track_id)
+
                 # Draw bounding boxes onto the predicted image
-                draw_bounding_boxes(frame, trackers[:, 0:4], labels, trackers[:, 4])
+                labels = ['Car'] * len(bboxes)
+                draw_bounding_boxes(frame, np.array(bboxes), labels, ids)
 
             i_frame = i_frame + 1
 
@@ -187,7 +205,7 @@ if __name__ == "__main__":
                 # Press Q on keyboard to  exit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-        else: 
+        else:
             break
 
     f_tracker.close()
