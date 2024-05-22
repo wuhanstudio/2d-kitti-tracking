@@ -232,4 +232,6 @@ if __name__ == "__main__":
 
     f_tracker.close()
     vid.release()
-    cv2.destroyAllWindows()
+
+    if SHOW_IMAGE:
+        cv2.destroyAllWindows()
