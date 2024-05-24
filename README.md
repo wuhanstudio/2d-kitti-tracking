@@ -53,7 +53,7 @@
 | YOLOv4 (Strong SORT)       | 55.17  | 59.49  |
 | YOLOv4 (Deep SORT)         | 51.99  | 56.65  |
 | YOLOv4 (SORT)              | 50.63  | 56.31  |
-|                            |        |        |
+| &nbsp;                     |        |        |
 | YOLOv3 (OC SORT)           | 40.60  | 55.90  |
 | YOLOv3 (Strong SORT)       | 43.25  | 56.19  |
 | YOLOv3 (Deep SORT)         | 41.69  | 53.80  |
