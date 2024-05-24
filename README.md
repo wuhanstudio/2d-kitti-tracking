@@ -1,6 +1,37 @@
 # 2D KITTI Tracking
 2D Object Tracking for the KITTI MOT dataset. 
 
+    VIDEO=0 # 0-20
+  
+    # Ground Truth
+    python 2d-tracking-gt.py --video ${VIDEO} --dataset kitti
+
+    # Ground Truth as Detector
+    python 2d-tracking-gt-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-gt-deep-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-gt-oc-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-gt-strong-sort.py --video ${VIDEO} --dataset kitti
+
+    # Yolov3 as Detector
+    python 2d-tracking-yolov3-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov3-deep-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov3-oc-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov3-strong-sort.py --video ${VIDEO} --dataset kitti
+
+    # Yolov4 as Detector
+    python 2d-tracking-yolov4-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov4-deep-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov4-oc-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolov4-strong-sort.py --video ${VIDEO} --dataset kitti
+
+    # YoloX as Detector
+    python 2d-tracking-yolox-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolox-deep-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolox-oc-sort.py --video ${VIDEO} --dataset kitti
+    python 2d-tracking-yolox-strong-sort.py --video ${VIDEO} --dataset kitti
+
+## Evaluation Results
+
 |         HOTA               |    KITTI   |     CARLA      |
 | :------------------------- | :--------: | :------------: |
 |Ground Truth                |   100.00   |    100.00      |
