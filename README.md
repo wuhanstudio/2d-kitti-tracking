@@ -1,5 +1,8 @@
-# 2D KITTI Tracking
-2D Object Tracking for the KITTI MOT dataset. 
+# 2D Object Tracking
+
+![](demo.png)
+
+## Quick Start
 
     VIDEO=0 # 0-20
       
