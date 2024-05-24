@@ -170,7 +170,7 @@ if __name__ == "__main__":
                 dets = np.concatenate(( np.array(sort_boxes).reshape((len(probs), -1)), np.array(probs).reshape((len(probs), -1)) ), axis=1)
 
                 # Update tracker
-                trackers = mot_tracker.update(dets, [height, width], (640, 640))
+                trackers = mot_tracker.update(dets, [height, width], (height, width))
 
                 for track in trackers:
                     f_tracker.write(f'{i_frame} {int(track[4])} Car -1.000000 -1 -1 {track[0]} {track[1]} {track[2]} {track[3]} -1 -1 -1 -1 -1 -1 -1 -1 1 \n')
